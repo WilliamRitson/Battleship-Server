@@ -2,7 +2,7 @@ import { error } from 'util';
 import * as readline from 'readline';
 
 import { getClientMessenger, MessageType, Message } from './messenger';
-import { BattleshipGame, Direction, GameAction, GameActionType, GameEvent, GameEventType, Point, ShipType } from './battleship';
+import { BattleshipGame, Direction, GameAction, GameActionType, GameEvent, GameEventType, Point, ShipType, TileBelief } from './battleship';
 import { RandomAI } from './ai';
 
 
@@ -30,11 +30,31 @@ class ConsoleClient {
         this.registerCommand('finish', this.finish, ClientState.inGame);
         this.registerCommand('fire', this.fire, ClientState.inGame);
         this.registerCommand('startAI', this.startAI, ClientState.inGame);
+        this.registerCommand('intel', this.showIntel, ClientState.inGame)
         this.registerCommand('help', this.help);
         this.registerCommand('exit', (args) => process.exit());
         messenger.addHandeler(MessageType.StartGame, this.startGame, this);
         messenger.addHandeler(MessageType.GameEvent, (msg) => this.handleGameEvent(msg.data), this);
         messenger.addHandeler(MessageType.ClientError, (msg) => console.error('Error:', msg.data), this);
+    }
+
+    private showIntel() {
+        let intel = this.game.getBeliefs(this.playerNumber);
+        console.log(intel);
+        let str = intel.map(row => {
+            row.map(col => {
+                console.log(col);
+                switch (col) {
+                    case TileBelief.Hit:
+                        return 'H';
+                    case TileBelief.Miss:
+                        return 'M'
+                    case TileBelief.Unknown:
+                        return 'U';
+                }
+            }).join('')
+        }).join('\n');
+        console.log(str);
     }
 
     private startAI() {
@@ -63,9 +83,10 @@ class ConsoleClient {
         //console.log('Game event', GameEventType[event.type], 'params', event.params);
         let params = event.params;
         let ourTurn = false;
+        this.game.syncServerEvent(this.playerNumber, event);
         switch (event.type) {
             case GameEventType.Fired:
-                console.log('%s fired at (%d, %d) and %s.', this.namePlayer(params.shooter), 
+                console.log('%s fired at (%d, %d) and %s.', this.namePlayer(params.shooter),
                     params.target.row, params.target.col, params.hit ? 'hit' : 'missed');
                 ourTurn = params.nextPlayer == this.playerNumber;
                 break;
@@ -80,10 +101,12 @@ class ConsoleClient {
                 console.log('The game is over %s won.', this.namePlayer(params.winner));
                 break;
         }
+
         if (ourTurn && this.AI) {
             let target = this.AI.getTarget();
             console.log('AI shot at', target)
-            this.sendGameAction(GameActionType.Fire, { target: target });
+            if (target)
+                this.sendGameAction(GameActionType.Fire, { target: target });
         }
 
     }

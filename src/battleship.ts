@@ -1,5 +1,8 @@
+import * as randomJs from 'random-js';
+const rng = new randomJs();
+
 export enum TileBelief {
-    Hit, Miss, Unknown
+    Unknown, Hit, Miss = -1
 }
 
 export enum ShipType {
@@ -114,6 +117,16 @@ export class BattleshipGame {
         return board;
     }
 
+    public syncServerEvent(owner: number, event: GameEvent) {
+        if (event.type != GameEventType.Fired)
+            return;
+        let params = event.params;
+        let targetedPlayer = this.getOpponent(event.params.shooter);
+        this.beliefs[targetedPlayer][params.target.row][params.target.col] =
+            params.hit ? TileBelief.Hit : TileBelief.Miss;
+        this.nextTurn = params.nextPlayer;
+    }
+
     private addActionHandeler(type: GameActionType, cb: (act: GameAction) => void) {
         this.actionHandelers.set(type, cb.bind(this));
     }
@@ -123,7 +136,6 @@ export class BattleshipGame {
     }
 
     public handleAction(action: GameAction): GameEvent[] {
-        console.log('handle', GameActionType[action.type], action.params);
         let mark = this.events.length;
         let handeler = this.actionHandelers.get(action.type);
         if (!handeler)
@@ -142,6 +154,10 @@ export class BattleshipGame {
 
     private nextTurn() {
         this.playerTurn = this.getOpponent(this.playerTurn);
+    }
+
+    public getBeliefs(player: number) {
+        return this.beliefs[player];
     }
 
     public fireAt(shootingPlayer: number, target: Point) {
@@ -197,6 +213,7 @@ export class BattleshipGame {
             this.addGameEvent(GameEventType.Ended, {
                 winner: shootingPlayer
             }, shootingPlayer, null)
+            this.playerTurn = 3;
         }
 
         this.nextTurn();
@@ -213,7 +230,7 @@ export class BattleshipGame {
         this.playerReady[player] = true;
         if (this.readyPlayers === playerNum) {
             this.gameStarted = true;
-            this.playerTurn = Math.floor(Math.random() * 2);
+            this.playerTurn = rng.integer(0, 1);
             this.addGameEvent(GameEventType.Started, { turn: this.playerTurn });
         }
     }
@@ -223,7 +240,7 @@ export class BattleshipGame {
             return false;
         let board = this.reality[player];
         let crawler = location.copy();
-        for (let i = 0; i < ship; i++) {
+        for (let i = 0; i < shipSizes[ship]; i++) {
             crawler.moveInDirection(dir);
             board[crawler.row][crawler.col] = ship;
         }
@@ -239,7 +256,7 @@ export class BattleshipGame {
         }
         let board = this.reality[player];
         let crawler = location.copy();
-        for (let i = 0; i < ship; i++) {
+        for (let i = 0; i < shipSizes[ship]; i++) {
             crawler.moveInDirection(dir);
             if (!board[crawler.row] || board[crawler.row][crawler.col] != ShipType.None) {
                 this.addError(player, 'That location would overlap with another ship.');
@@ -249,5 +266,12 @@ export class BattleshipGame {
         }
         return true;
     }
+
+    public boardToString<T>(board: Array<Array<T>>, formatCell: (T) => string) {
+        return board.map(row => {
+            row.map(formatCell).join('')
+        }).join('\n');
+    }
+
 
 }

@@ -30,13 +30,11 @@ export class RandomAI {
                 i--;
             }
         }
-        console.log(res);
         return res;
     }
 
     public getTarget(): Point {
         let idx = rng.integer(0, this.targets.length - 1);
-        console.log(this.targets.length);
         return this.targets.splice(idx, 1)[0];
     }
 
