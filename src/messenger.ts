@@ -1,4 +1,5 @@
 import { playerQueue } from './matchmaking'
+import { getToken} from './tokens';
 import * as WebSocket from 'ws';
 
 
@@ -136,7 +137,7 @@ class ClientMessenger extends Messenger {
     constructor() {
         super(false);
         this.ws = new WebSocket('ws://localhost:' + port);
-        this.id = Math.random().toString();
+        this.id = getToken();
         this.ws.on('open', () => {
             console.log(this.name + ':', 'Conneciton opened');
         });

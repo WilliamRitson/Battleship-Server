@@ -1,3 +1,4 @@
+import { getToken } from './tokens';
 import { BattleshipGame } from './battleship';
 import { Account } from './account';
 import { getServerMessenger, Message, MessageType } from './messenger';
@@ -29,7 +30,7 @@ class ServerState {
             this.accounts.set(token1, new Account(token1));
         if (!this.accounts.has(token2))
             this.accounts.set(token2, new Account(token2));
-        let id = Math.random().toString();
+        let id = getToken();
         this.accounts.get(token1).setInGame(id);
         this.accounts.get(token2).setInGame(id);
         

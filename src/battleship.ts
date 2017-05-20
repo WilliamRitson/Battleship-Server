@@ -28,6 +28,10 @@ export class Point {
     public inBounds(rowLow, rowHigh, colLow, colHigh): boolean {
         return this.row >= rowLow && this.row < rowHigh && this.col >= colLow && this.col < colHigh;
     }
+
+    public toString() {
+        return `(${this.row}, {$this.col})`;
+    }
 }
 
 export interface GameAction {
@@ -45,7 +49,7 @@ export enum GameEventType {
 }
 
 export class GameEvent {
-    constructor(public type: GameEventType, public params: object, public owner: number = null, public redact: any = null) { }
+    constructor(public type: GameEventType, public params: any, public owner: number = null, public redact: any = null) { }
 }
 
 const shipSizes = [5, 4, 3, 3, 2];
@@ -55,7 +59,7 @@ const boardSize = 10;
 
 export class BattleshipGame {
     private reality: ShipType[][][];
-    private belifs: TileBelief[][][];
+    private beliefs: TileBelief[][][];
     private unplacedPieces: ShipType[][];
     private readyPlayers: number;
     private gameStarted: boolean;
@@ -68,10 +72,10 @@ export class BattleshipGame {
 
     constructor(private errorHandeler: (player: number, msg: string) => void) {
         this.reality = [];
-        this.belifs = [];
+        this.beliefs = [];
         for (let i = 0; i < playerNum; i++) {
             this.reality.push(this.makeBoard(ShipType.None) as ShipType[][]);
-            this.belifs.push(this.makeBoard(TileBelief.Unknown) as TileBelief[][]);
+            this.beliefs.push(this.makeBoard(TileBelief.Unknown) as TileBelief[][]);
         }
         let totalHits = shipSizes.reduce((a, b) => a + b);
         this.remainingHits = [totalHits, totalHits];
@@ -154,40 +158,42 @@ export class BattleshipGame {
             this.addError(shootingPlayer, 'Target out of bounds.')
             return;
         }
-        if (this.belifs[shootingPlayer][target.row][target.col] != TileBelief.Unknown) {
+        if (this.beliefs[shootingPlayer][target.row][target.col] != TileBelief.Unknown) {
             this.addError(shootingPlayer, 'You have already fired at that location.')
             return;
         }
+        let op = this.getOpponent(shootingPlayer);
 
         // Game Logic
-        let board = this.reality[this.getOpponent(shootingPlayer)];
+        let board = this.reality[op];
         let ShipHit = board[target.row][target.col];
         let hit = ShipHit != ShipType.None;
         if (hit) {
-            this.belifs[shootingPlayer][target.row][target.col] = TileBelief.Hit;
-            this.remainingHits[this.getOpponent(shootingPlayer)]--;
-            this.hitsPerShip[this.getOpponent(shootingPlayer)][ShipHit]--;
+            this.beliefs[shootingPlayer][target.row][target.col] = TileBelief.Hit;
+            this.remainingHits[op]--;
+            this.hitsPerShip[op][ShipHit]--;
         } else {
-            this.belifs[shootingPlayer][target.row][target.col] = TileBelief.Miss;
+            this.beliefs[shootingPlayer][target.row][target.col] = TileBelief.Miss;
         }
 
         // Report results to players
         this.addGameEvent(GameEventType.Fired, {
             target: target,
             shooter: shootingPlayer,
-            hit: hit
+            hit: hit,
+            nextPlayer: op
         })
 
         // Check if ship sunk
-        if (this.hitsPerShip[this.getOpponent(shootingPlayer)][ShipHit]) {
+        if (this.hitsPerShip[op][ShipHit] < 1) {
             this.addGameEvent(GameEventType.SunkShip, {
-                owner: this.getOpponent(shootingPlayer),
+                owner: op,
                 ship: ShipHit
             }, shootingPlayer, null)
         }
 
         // Check if the game ended
-        if (this.remainingHits[this.getOpponent(shootingPlayer)] < 1) {
+        if (this.remainingHits[op] < 1) {
             this.addGameEvent(GameEventType.Ended, {
                 winner: shootingPlayer
             }, shootingPlayer, null)
@@ -207,13 +213,14 @@ export class BattleshipGame {
         this.playerReady[player] = true;
         if (this.readyPlayers === playerNum) {
             this.gameStarted = true;
-            this.addGameEvent(GameEventType.Started, {});
+            this.playerTurn = Math.floor(Math.random() * 2);
+            this.addGameEvent(GameEventType.Started, { turn: this.playerTurn });
         }
     }
 
     public placeShip(player: number, ship: ShipType, location: Point, dir: Direction) {
         if (!this.canPlaceShip(player, ship, location, dir))
-            return;
+            return false;
         let board = this.reality[player];
         let crawler = location.copy();
         for (let i = 0; i < ship; i++) {
@@ -221,19 +228,20 @@ export class BattleshipGame {
             board[crawler.row][crawler.col] = ship;
         }
         this.unplacedPieces[player].splice(this.unplacedPieces[player].indexOf(ship), 1);
+        return true;
     }
 
 
     private canPlaceShip(player: number, ship: ShipType, location: Point, dir: Direction): boolean {
         if (this.unplacedPieces[player].indexOf(ship) === -1) {
-            this.addError(player, 'You already placed a' + ShipType[ship]);
+            this.addError(player, 'You already placed a ' + ShipType[ship]);
             return false;
         }
         let board = this.reality[player];
         let crawler = location.copy();
         for (let i = 0; i < ship; i++) {
             crawler.moveInDirection(dir);
-            if (board[crawler.row][crawler.col] != ShipType.None) {
+            if (!board[crawler.row] || board[crawler.row][crawler.col] != ShipType.None) {
                 this.addError(player, 'That location would overlap with another ship.');
                 return false;
             }
