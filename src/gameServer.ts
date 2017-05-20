@@ -1,15 +1,14 @@
-import { getServerMessenger, MessageType, Message } from './messenger';
+import { ServerMessenger, MessageType, Message } from './messenger';
 import { Account } from './account';
 import { BattleshipGame, GameAction, Direction } from './battleship';
 
-const messenger = getServerMessenger();
 
 export class GameServer {
     private playerAccounts: Account[] = [];
     private game: BattleshipGame;
     private id: string;
 
-    constructor(id: string, player1: Account, player2: Account) {
+    constructor(private messenger:ServerMessenger, id: string, player1: Account, player2: Account) {
         this.game = new BattleshipGame((player, error) => {
             messenger.sendMessageTo(MessageType.ClientError, error, this.playerAccounts[player].token);
         });
@@ -30,7 +29,7 @@ export class GameServer {
 
         this.playerAccounts.forEach(acc => {
             events.forEach(event => {
-                messenger.sendMessageTo(MessageType.GameEvent, event, acc.token);
+                this.messenger.sendMessageTo(MessageType.GameEvent, event, acc.token);
             })
         })
     }
@@ -38,7 +37,7 @@ export class GameServer {
     public start() {
         for (let i = 0; i < this.playerAccounts.length; i++) {
             let playerInfo = 'Welcome to Battleship. Please place your ship.';
-            messenger.sendMessageTo(MessageType.StartGame, {
+            this.messenger.sendMessageTo(MessageType.StartGame, {
                 playerNumber: i,
                 startInfo: playerInfo,
                 gameId: this.id

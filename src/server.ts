@@ -1,24 +1,30 @@
+import { ServerMessenger, Message, MessageType } from './messenger';
 import { getToken } from './tokens';
-import { BattleshipGame } from './battleship';
 import { Account } from './account';
-import { getServerMessenger, Message, MessageType } from './messenger';
 import { GameServer } from './gameServer';
+import { MatchQueue } from './matchmaking';
 
-const messenger = getServerMessenger();
-
-class ServerState {
+export class Server {
+    private gameQueue: MatchQueue;
+    private messenger: ServerMessenger;
     private games: Map<string, GameServer> = new Map<string, GameServer>();
     private accounts: Map<string, Account> = new Map<string, Account>();
 
-    constructor() {
-        messenger.addHandeler(MessageType.GameAction, (msg: Message) => {
+    constructor(websocketPort: number) {
+        this.messenger = new ServerMessenger(websocketPort);
+        this.gameQueue = new MatchQueue(this.messenger, this.makeGame.bind(this));
+        this.passMessagesToGames();
+    }
+
+    private passMessagesToGames() {
+        this.messenger.addHandeler(MessageType.GameAction, (msg: Message) => {
             let acc = this.accounts.get(msg.source);
             if (acc == null) {
-                messenger.sendMessageTo(MessageType.ClientError, "Can't take game action. Your not logged in.", msg.source);
+                this.messenger.sendMessageTo(MessageType.ClientError, "Can't take a game action. Your not logged in.", msg.source);
             }
             let id = acc.getGame();
             if (id === null) {
-                messenger.sendMessageTo(MessageType.ClientError, "Can't take game action. Your not in a game.", msg.source);
+                this.messenger.sendMessageTo(MessageType.ClientError, "Can't take a game action. Your not in a game.", msg.source);
                 return;
             }
             this.games.get(id).handleAction(msg);
@@ -33,11 +39,12 @@ class ServerState {
         let id = getToken();
         this.accounts.get(token1).setInGame(id);
         this.accounts.get(token2).setInGame(id);
-        
-        let server = new GameServer(id, this.accounts.get(token1), this.accounts.get(token2));
+
+        let server = new GameServer(this.messenger, id, this.accounts.get(token1), this.accounts.get(token2));
         this.games.set(id, server);
         server.start();
     }
+
 }
 
-export const state = new ServerState();
+

@@ -1,12 +1,12 @@
 import { error } from 'util';
 import * as readline from 'readline';
 
-import { getClientMessenger, MessageType, Message } from './messenger';
+import { ClientMessenger, MessageType, Message } from './messenger';
 import { BattleshipGame, Direction, GameAction, GameActionType, GameEvent, GameEventType, Point, ShipType, TileBelief } from './battleship';
 import { RandomAI } from './ai';
 
-
-const messenger = getClientMessenger();
+const websocketPort = process.env.WS_PORT || 2222;
+const messenger = new ClientMessenger(websocketPort);
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout

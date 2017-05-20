@@ -1,9 +1,8 @@
-import { playerQueue } from './matchmaking'
-import { getToken} from './tokens';
+import { getToken } from './tokens';
 import * as WebSocket from 'ws';
 
 
-export enum MessageType  {
+export enum MessageType {
     // General
     Info,
     ClientError,
@@ -12,7 +11,7 @@ export enum MessageType  {
     JoinQueue,
     ExitQueue,
     StartGame,
-    
+
     // In Game
     Concede,
     GameEvent,
@@ -25,8 +24,6 @@ export interface Message {
     data: any;
 }
 
-// Todo, make this more dynamic
-const port = 2222;
 
 /**
  * Abstract class used to communicate via websockets. Can be used by the client or server. 
@@ -63,7 +60,7 @@ abstract class Messenger {
             data: data,
             source: this.id
         });
-    } 
+    }
 
     public addHandeler(messageType, callback: (message: Message) => void, context?: any) {
         if (context) {
@@ -72,9 +69,9 @@ abstract class Messenger {
         this.handlers.set(messageType, callback);
     }
 
-    protected sendMessage(messageType: MessageType , data: string | object, ws: any) {
+    protected sendMessage(messageType: MessageType, data: string | object, ws: any) {
         ws.send(this.makeMessage(messageType, data));
-    } 
+    }
 }
 
 /**
@@ -83,10 +80,10 @@ abstract class Messenger {
  * @class ServerMessenger
  * @extends {Messenger}
  */
-class ServerMessenger extends Messenger {
+export class ServerMessenger extends Messenger {
     private ws: WebSocket.Server;
 
-    constructor() {
+    constructor(port: number) {
         super(true);
         this.ws = new WebSocket.Server({
             perMessageDeflate: false,
@@ -127,14 +124,14 @@ class ServerMessenger extends Messenger {
 /**
  * Version of the messenger appropriate for use by a (nodejs) client.
  */
-class ClientMessenger extends Messenger {
+export class ClientMessenger extends Messenger {
     private ws: WebSocket;
 
     public sendMessageToServer(messageType: MessageType, data: string | object) {
         this.sendMessage(messageType, data, this.ws);
     }
 
-    constructor() {
+    constructor(port: number) {
         super(false);
         this.ws = new WebSocket('ws://localhost:' + port);
         this.id = getToken();
@@ -148,16 +145,4 @@ class ClientMessenger extends Messenger {
 const messengers = {
     client: null,
     server: null
-}
-
-export function getServerMessenger(): ServerMessenger {
-    if (!messengers.server)
-        messengers.server = new ServerMessenger();
-    return messengers.server;
-}
-
-export function getClientMessenger(): ClientMessenger {
-    if (!messengers.client)
-        messengers.client = new ClientMessenger();
-    return messengers.client;
 }
