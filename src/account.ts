@@ -1,4 +1,7 @@
-let count = 1;
+import { NameGenerator } from './nameGenerator';
+
+let ng = new NameGenerator();
+
 export class Account {
     username: string;
     token: string;
@@ -6,16 +9,15 @@ export class Account {
 
     constructor(token: string) {
         this.token = token;
-        this.username = 'Player ' + count;
+        this.username = ng.getName();
         this.gameId = null;
-        count++;
     }
 
-    setInGame(gameId: string) {
+    public setInGame(gameId: string) {
         this.gameId = gameId;
     }
 
-    getGame() {
+    public getGame() {
         return this.gameId;
     }
 }

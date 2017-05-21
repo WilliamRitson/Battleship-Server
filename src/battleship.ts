@@ -248,7 +248,6 @@ export class BattleshipGame {
         return true;
     }
 
-
     private canPlaceShip(player: number, ship: ShipType, location: Point, dir: Direction): boolean {
         if (this.unplacedPieces[player].indexOf(ship) === -1) {
             this.addError(player, 'You already placed a ' + ShipType[ship]);

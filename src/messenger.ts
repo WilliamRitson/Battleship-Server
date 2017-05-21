@@ -1,7 +1,6 @@
 import { getToken } from './tokens';
 import * as WebSocket from 'ws';
 
-
 export enum MessageType {
     // General
     Info,

@@ -1,4 +1,3 @@
-import { error } from 'util';
 import * as readline from 'readline';
 
 import { ClientMessenger, MessageType, Message } from './messenger';
@@ -80,7 +79,6 @@ class ConsoleClient {
     }
 
     private handleGameEvent(event: GameEvent) {
-        //console.log('Game event', GameEventType[event.type], 'params', event.params);
         let params = event.params;
         let ourTurn = false;
         this.game.syncServerEvent(this.playerNumber, event);

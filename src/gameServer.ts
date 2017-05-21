@@ -1,7 +1,6 @@
 import { ServerMessenger, MessageType, Message } from './messenger';
-import { Account } from './account';
 import { BattleshipGame, GameAction, Direction } from './battleship';
-
+import { Account } from './account';
 
 export class GameServer {
     private playerAccounts: Account[] = [];

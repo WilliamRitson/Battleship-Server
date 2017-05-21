@@ -4,6 +4,12 @@ import { Account } from './account';
 import { GameServer } from './gameServer';
 import { MatchQueue } from './matchmaking';
 
+/**
+ * Server that holds references to all the components of the app
+ * 
+ * @export
+ * @class Server
+ */
 export class Server {
     private gameQueue: MatchQueue;
     private messenger: ServerMessenger;

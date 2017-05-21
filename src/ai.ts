@@ -1,9 +1,6 @@
 import { BattleshipGame, Point, Direction, ShipType } from './battleship';
 import * as randomJs from 'random-js';
-
 const rng = new randomJs();
-
-
 
 export class RandomAI {
     private targets: Point[];
