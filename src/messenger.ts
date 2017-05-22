@@ -68,8 +68,11 @@ abstract class Messenger {
         this.handlers.set(messageType, callback);
     }
 
-    protected sendMessage(messageType: MessageType, data: string | object, ws: any) {
+    protected sendMessage(messageType: MessageType, data: string | object, ws: WebSocket):boolean {
+        if (ws.readyState !== ws.OPEN)
+            return false;
         ws.send(this.makeMessage(messageType, data));
+        return true;
     }
 }
 
@@ -82,12 +85,9 @@ abstract class Messenger {
 export class ServerMessenger extends Messenger {
     private ws: WebSocket.Server;
 
-    constructor(port: number) {
+    constructor(server) {
         super(true);
-        this.ws = new WebSocket.Server({
-            perMessageDeflate: false,
-            port: port
-        });
+        this.ws = new WebSocket.Server({ server });
         this.id = 'server';
         this.ws.on('connection', (ws) => {
             ws.on('message', (data) => {
@@ -116,7 +116,7 @@ export class ServerMessenger extends Messenger {
     }
 
     public sendMessageTo(messageType: MessageType, data: string | object, target: string) {
-        this.sendMessage(messageType, data, this.connections.get(target));
+        return this.sendMessage(messageType, data, this.connections.get(target));
     }
 }
 

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/index.js",
+    "start": "./node_modules/.bin/tsc --outDir dist && node ./dist/index.js",
     "test": "mocha --reporter spec --compilers ts:ts-node/register"
   },
   "keywords": [],
@@ -27,10 +27,10 @@
     "gulp": "^3.9.1",
     "gulp-typescript": "^3.1.1",
     "mocha": "^3.1.2",
-    "ts-node": "^1.6.1",
-    "typescript": "^2.2.2"
+    "ts-node": "^1.6.1"
   },
   "dependencies": {
+    "typescript": "^2.2.2",
     "body-parser": "^1.15.2",
     "debug": "^2.2.0",
     "express": "^4.14.0",

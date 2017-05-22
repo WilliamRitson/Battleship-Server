@@ -109,7 +109,6 @@ class ConsoleClient {
 
     }
 
-
     public registerCommand(cmd: string, callback: (args: string[]) => void, reqState: ClientState = ClientState.any) {
         this.commands.set(cmd, (args) => {
             if (reqState != ClientState.any && this.state != reqState) {

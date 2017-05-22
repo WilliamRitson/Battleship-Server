@@ -3,6 +3,10 @@ import { getToken } from './tokens';
 import { Account } from './account';
 import { GameServer } from './gameServer';
 import { MatchQueue } from './matchmaking';
+import * as express from 'express';
+
+var app = express();
+app.use('/', express.static('public'))
 
 /**
  * Server that holds references to all the components of the app
@@ -15,9 +19,11 @@ export class Server {
     private messenger: ServerMessenger;
     private games: Map<string, GameServer> = new Map<string, GameServer>();
     private accounts: Map<string, Account> = new Map<string, Account>();
+    private app: Express.Application;
 
-    constructor(websocketPort: number) {
-        this.messenger = new ServerMessenger(websocketPort);
+    constructor(port: number) {
+        let expressServer = app.listen(port);
+        this.messenger = new ServerMessenger(expressServer);
         this.gameQueue = new MatchQueue(this.messenger, this.makeGame.bind(this));
         this.passMessagesToGames();
     }
@@ -45,10 +51,16 @@ export class Server {
         let id = getToken();
         this.accounts.get(token1).setInGame(id);
         this.accounts.get(token2).setInGame(id);
-
-        let server = new GameServer(this.messenger, id, this.accounts.get(token1), this.accounts.get(token2));
+        let server = new GameServer(this.messenger, this, id, this.accounts.get(token1), this.accounts.get(token2));
         this.games.set(id, server);
         server.start();
+    }
+
+    public endGame(gameId: string) {
+        if (this.games.has(gameId))
+            this.games.delete(gameId);
+        else
+            console.error('Trying to delete non-existant game with id', gameId);
     }
 
 }

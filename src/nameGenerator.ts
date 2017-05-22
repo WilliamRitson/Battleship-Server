@@ -4,8 +4,8 @@ const rng = new randomJs();
 export class NameGenerator {
 
     public getName(): string {
-        let first = rng.pick(randomJs.engines.nativeMath, this.namesList).first;
-        let last = rng.pick(randomJs.engines.nativeMath, this.namesList).last;
+        let first = this.namesList[rng.integer(0, this.namesList.length -1)].first;
+        let last = this.namesList[rng.integer(0, this.namesList.length -1)].last;
         return 'Captain ' + first + ' ' + last
     }
 

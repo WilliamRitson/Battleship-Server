@@ -33,7 +33,7 @@ export class Point {
     }
 
     public toString() {
-        return `(${this.row}, {$this.col})`;
+        return `(${this.row}, ${this.col})`;
     }
 }
 
@@ -55,8 +55,8 @@ export class GameEvent {
     constructor(public type: GameEventType, public params: any, public owner: number = null, public redact: any = null) { }
 }
 
-const shipSizes = [5, 4, 3, 3, 2];
-const dirMappings = [new Point(1, 0), new Point(0, 1), new Point(-1, 0), new Point(0, -1)];
+export const shipSizes = [5, 4, 3, 3, 2];
+export const dirMappings = [new Point(-1, 0), new Point(0, 1), new Point(1, 0), new Point(0, -1)];
 const playerNum = 2;
 const boardSize = 10;
 
@@ -72,6 +72,7 @@ export class BattleshipGame {
     private remainingHits: [number, number];
     private hitsPerShip: [number[], number[]];
     private playerReady: [boolean, boolean];
+    private winner: number = -1;
 
     constructor(private errorHandeler: (player: number, msg: string) => void) {
         this.reality = [];
@@ -117,14 +118,34 @@ export class BattleshipGame {
         return board;
     }
 
+    public hasStarted() {
+        return this.gameStarted;
+    }
+
+    public getTurn() {
+        return this.playerTurn;
+    }
+
+    public getWinner() {
+        return this.winner;
+    }
+
     public syncServerEvent(owner: number, event: GameEvent) {
-        if (event.type != GameEventType.Fired)
-            return;
-        let params = event.params;
-        let targetedPlayer = this.getOpponent(event.params.shooter);
-        this.beliefs[targetedPlayer][params.target.row][params.target.col] =
-            params.hit ? TileBelief.Hit : TileBelief.Miss;
-        this.nextTurn = params.nextPlayer;
+        switch (event.type) {
+            case GameEventType.Started:
+                this.playerTurn = event.params.turn
+                this.gameStarted = true;
+                break;
+            case GameEventType.Fired:
+                let params = event.params;
+                let targetedPlayer = this.getOpponent(event.params.shooter);
+                this.beliefs[event.params.shooter][params.target.row][params.target.col] =
+                    params.hit ? TileBelief.Hit : TileBelief.Miss;
+                this.playerTurn = params.nextPlayer;
+                break;
+            case GameEventType.Ended:
+                this.winner = event.params.winner;
+        }
     }
 
     private addActionHandeler(type: GameActionType, cb: (act: GameAction) => void) {
@@ -213,6 +234,7 @@ export class BattleshipGame {
             this.addGameEvent(GameEventType.Ended, {
                 winner: shootingPlayer
             }, shootingPlayer, null)
+            this.winner = shootingPlayer;
             this.playerTurn = 3;
         }
 
@@ -241,8 +263,8 @@ export class BattleshipGame {
         let board = this.reality[player];
         let crawler = location.copy();
         for (let i = 0; i < shipSizes[ship]; i++) {
-            crawler.moveInDirection(dir);
             board[crawler.row][crawler.col] = ship;
+            crawler.moveInDirection(dir);
         }
         this.unplacedPieces[player].splice(this.unplacedPieces[player].indexOf(ship), 1);
         return true;
@@ -256,12 +278,11 @@ export class BattleshipGame {
         let board = this.reality[player];
         let crawler = location.copy();
         for (let i = 0; i < shipSizes[ship]; i++) {
-            crawler.moveInDirection(dir);
             if (!board[crawler.row] || board[crawler.row][crawler.col] != ShipType.None) {
                 this.addError(player, 'That location would overlap with another ship.');
                 return false;
             }
-
+            crawler.moveInDirection(dir);
         }
         return true;
     }
