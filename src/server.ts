@@ -22,7 +22,9 @@ export class Server {
     private app: Express.Application;
 
     constructor(port: number) {
-        let expressServer = app.listen(port);
+        let expressServer = app.listen(port, () => {
+            console.log('Server started on port', port);
+        });
         this.messenger = new ServerMessenger(expressServer);
         this.gameQueue = new MatchQueue(this.messenger, this.makeGame.bind(this));
         this.passMessagesToGames();
