@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "node src/index.ts",
+    "start": "node dist/index.js",
     "test": "mocha --reporter spec --compilers ts:ts-node/register"
   },
   "keywords": [],
