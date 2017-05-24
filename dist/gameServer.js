@@ -30,6 +30,15 @@ class GameServer {
                 this.messenger.sendMessageTo(messenger_1.MessageType.GameEvent, event, acc.token);
             });
         });
+        if (this.game.getWinner() != -1) {
+            this.end();
+        }
+    }
+    end() {
+        this.server.endGame(this.id);
+        this.playerAccounts.forEach(acc => {
+            acc.setInGame(null);
+        });
     }
     start() {
         for (let i = 0; i < this.playerAccounts.length; i++) {
@@ -37,9 +46,13 @@ class GameServer {
             this.messenger.sendMessageTo(messenger_1.MessageType.StartGame, {
                 playerNumber: i,
                 startInfo: playerInfo,
-                gameId: this.id
+                gameId: this.id,
+                opponent: this.playerAccounts[1 - i].username
             }, this.playerAccounts[i].token);
         }
+    }
+    getName() {
+        return this.playerAccounts[0].username + ' vs ' + this.playerAccounts[1].username;
     }
 }
 exports.GameServer = GameServer;

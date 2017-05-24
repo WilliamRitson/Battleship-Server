@@ -6,8 +6,6 @@ const account_1 = require("./account");
 const gameServer_1 = require("./gameServer");
 const matchmaking_1 = require("./matchmaking");
 const express = require("express");
-var app = express();
-app.use('/', express.static('public'));
 /**
  * Server that holds references to all the components of the app
  *
@@ -18,12 +16,38 @@ class Server {
     constructor(port) {
         this.games = new Map();
         this.accounts = new Map();
-        let expressServer = app.listen(port, () => {
+        this.app = express();
+        this.addRoutes();
+        let expressServer = this.app.listen(port, () => {
             console.log('Server started on port', port);
         });
         this.messenger = new messenger_1.ServerMessenger(expressServer);
         this.gameQueue = new matchmaking_1.MatchQueue(this.messenger, this.makeGame.bind(this));
+        this.messenger.addHandeler(messenger_1.MessageType.AnonymousLogin, (msg) => this.anonLogin(msg));
         this.passMessagesToGames();
+    }
+    addRoutes() {
+        this.app.use('/', express.static('public'));
+        this.app.get('/report', (req, res) => {
+            res.send(this.getReport());
+        });
+    }
+    getReport() {
+        return {
+            users: Array.from(this.accounts.values()).map(acc => acc.username),
+            games: Array.from(this.games.values()).map(game => game.getName()),
+        };
+    }
+    anonLogin(msg) {
+        let userName = msg.data.username;
+        let token = tokens_1.getToken();
+        let acc = new account_1.Account(token, userName);
+        this.accounts.set(token, acc);
+        this.messenger.sendMessageTo(messenger_1.MessageType.LoginResponce, {
+            username: acc.username,
+            token: acc.token
+        }, msg.source);
+        this.messenger.changeToken(msg.source, token);
     }
     passMessagesToGames() {
         this.messenger.addHandeler(messenger_1.MessageType.GameAction, (msg) => {
@@ -36,14 +60,14 @@ class Server {
                 this.messenger.sendMessageTo(messenger_1.MessageType.ClientError, "Can't take a game action. Your not in a game.", msg.source);
                 return;
             }
+            if (!this.games.has(id)) {
+                this.messenger.sendMessageTo(messenger_1.MessageType.ClientError, "Game does not exist.", msg.source);
+                return;
+            }
             this.games.get(id).handleAction(msg);
         });
     }
     makeGame(token1, token2) {
-        if (!this.accounts.has(token1))
-            this.accounts.set(token1, new account_1.Account(token1));
-        if (!this.accounts.has(token2))
-            this.accounts.set(token2, new account_1.Account(token2));
         let id = tokens_1.getToken();
         this.accounts.get(token1).setInGame(id);
         this.accounts.get(token2).setInGame(id);

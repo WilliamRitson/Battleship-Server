@@ -8,9 +8,9 @@ export class Account {
     gameId: string;
     lastUsed: Date;
 
-    constructor(token: string) {
+    constructor(token: string, name: string) {
         this.token = token;
-        this.username = ng.getName();
+        this.username = name || ng.getName();
         this.gameId = null;
         this.freshen();
     }

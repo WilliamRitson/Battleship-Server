@@ -3,18 +3,16 @@ import * as WebSocket from 'ws';
 
 export enum MessageType {
     // General
-    Info,
-    ClientError,
+    Info, ClientError,
+
+    // Accounts
+    AnonymousLogin, LoginResponce,
 
     // Queuing
-    JoinQueue,
-    ExitQueue,
-    StartGame,
+    JoinQueue, ExitQueue, StartGame,
 
     // In Game
-    Concede,
-    GameEvent,
-    GameAction,
+    Concede, GameEvent, GameAction
 }
 
 export interface Message {
@@ -33,11 +31,9 @@ abstract class Messenger {
     protected handlers: Map<string, (Message) => void>;
     protected name: string;
     protected id: string;
-    protected connections: Map<string, any>;
 
     constructor(isServer) {
         this.name = isServer ? 'Server' : 'Client';
-        this.connections = new Map<string, any>();
         this.handlers = new Map();
     }
 
@@ -90,9 +86,12 @@ abstract class Messenger {
  */
 export class ServerMessenger extends Messenger {
     private ws: WebSocket.Server;
+    protected connections: Map<string, any>;
+
 
     constructor(server) {
         super(true);
+        this.connections = new Map<string, any>();
         this.ws = new WebSocket.Server({ server });
         this.id = 'server';
         this.ws.on('connection', (ws) => {
@@ -103,6 +102,12 @@ export class ServerMessenger extends Messenger {
             });
             this.makeMessageHandler(ws);
         });
+    }
+
+    public changeToken(oldToken:string, newToken:string ) {
+        let temp = this.connections.get(oldToken);
+        this.connections.delete(oldToken);
+        this.connections.set(newToken, temp);
     }
 
     /**

@@ -5,9 +5,6 @@ import { GameServer } from './gameServer';
 import { MatchQueue } from './matchmaking';
 import * as express from 'express';
 
-var app = express();
-app.use('/', express.static('public'))
-
 /**
  * Server that holds references to all the components of the app
  * 
@@ -19,15 +16,46 @@ export class Server {
     private messenger: ServerMessenger;
     private games: Map<string, GameServer> = new Map<string, GameServer>();
     private accounts: Map<string, Account> = new Map<string, Account>();
-    private app: Express.Application;
+    private app: express.Express;
 
     constructor(port: number) {
-        let expressServer = app.listen(port, () => {
+        this.app = express();
+        this.addRoutes();
+        let expressServer = this.app.listen(port, () => {
             console.log('Server started on port', port);
         });
+
         this.messenger = new ServerMessenger(expressServer);
         this.gameQueue = new MatchQueue(this.messenger, this.makeGame.bind(this));
+        this.messenger.addHandeler(MessageType.AnonymousLogin, (msg) => this.anonLogin(msg));
+
         this.passMessagesToGames();
+    }
+
+    private addRoutes() {
+        this.app.use('/', express.static('public'))
+        this.app.get('/report', (req, res) => {
+            res.send(this.getReport())
+        });
+    }
+
+    private getReport() {
+        return {
+            users: Array.from(this.accounts.values()).map(acc => acc.username),
+            games: Array.from(this.games.values()).map(game => game.getName()),
+        }
+    }
+
+    private anonLogin(msg: Message) {
+        let userName = msg.data.username;
+        let token = getToken();
+        let acc = new Account(token, userName);
+        this.accounts.set(token, acc);
+        this.messenger.sendMessageTo(MessageType.LoginResponce, {
+            username: acc.username,
+            token: acc.token
+        }, msg.source);
+        this.messenger.changeToken(msg.source, token);
     }
 
     private passMessagesToGames() {
@@ -41,15 +69,15 @@ export class Server {
                 this.messenger.sendMessageTo(MessageType.ClientError, "Can't take a game action. Your not in a game.", msg.source);
                 return;
             }
+            if (!this.games.has(id)) {
+                this.messenger.sendMessageTo(MessageType.ClientError, "Game does not exist..", msg.source);
+                return;
+            }
             this.games.get(id).handleAction(msg);
         });
     }
 
     public makeGame(token1: string, token2: string) {
-        if (!this.accounts.has(token1))
-            this.accounts.set(token1, new Account(token1));
-        if (!this.accounts.has(token2))
-            this.accounts.set(token2, new Account(token2));
         let id = getToken();
         this.accounts.get(token1).setInGame(id);
         this.accounts.get(token2).setInGame(id);

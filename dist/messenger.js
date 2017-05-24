@@ -7,14 +7,17 @@ var MessageType;
     // General
     MessageType[MessageType["Info"] = 0] = "Info";
     MessageType[MessageType["ClientError"] = 1] = "ClientError";
+    // Accounts
+    MessageType[MessageType["AnonymousLogin"] = 2] = "AnonymousLogin";
+    MessageType[MessageType["LoginResponce"] = 3] = "LoginResponce";
     // Queuing
-    MessageType[MessageType["JoinQueue"] = 2] = "JoinQueue";
-    MessageType[MessageType["ExitQueue"] = 3] = "ExitQueue";
-    MessageType[MessageType["StartGame"] = 4] = "StartGame";
+    MessageType[MessageType["JoinQueue"] = 4] = "JoinQueue";
+    MessageType[MessageType["ExitQueue"] = 5] = "ExitQueue";
+    MessageType[MessageType["StartGame"] = 6] = "StartGame";
     // In Game
-    MessageType[MessageType["Concede"] = 5] = "Concede";
-    MessageType[MessageType["GameEvent"] = 6] = "GameEvent";
-    MessageType[MessageType["GameAction"] = 7] = "GameAction";
+    MessageType[MessageType["Concede"] = 7] = "Concede";
+    MessageType[MessageType["GameEvent"] = 8] = "GameEvent";
+    MessageType[MessageType["GameAction"] = 9] = "GameAction";
 })(MessageType = exports.MessageType || (exports.MessageType = {}));
 /**
  * Abstract class used to communicate via websockets. Can be used by the client or server.
@@ -24,7 +27,6 @@ var MessageType;
 class Messenger {
     constructor(isServer) {
         this.name = isServer ? 'Server' : 'Client';
-        this.connections = new Map();
         this.handlers = new Map();
     }
     makeMessageHandler(ws) {
@@ -75,6 +77,7 @@ class Messenger {
 class ServerMessenger extends Messenger {
     constructor(server) {
         super(true);
+        this.connections = new Map();
         this.ws = new WebSocket.Server({ server });
         this.id = 'server';
         this.ws.on('connection', (ws) => {
@@ -85,6 +88,11 @@ class ServerMessenger extends Messenger {
             });
             this.makeMessageHandler(ws);
         });
+    }
+    changeToken(oldToken, newToken) {
+        let temp = this.connections.get(oldToken);
+        this.connections.delete(oldToken);
+        this.connections.set(newToken, temp);
     }
     /**
      * Send Mesage from server to all clients

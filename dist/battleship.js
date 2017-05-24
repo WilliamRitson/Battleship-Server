@@ -188,6 +188,10 @@ class BattleshipGame {
             this.addError(shootingPlayer, 'The game has not started yet.');
             return;
         }
+        if (this.winner != -1) {
+            this.addError(shootingPlayer, 'The game is over.');
+            return;
+        }
         if (this.playerTurn != shootingPlayer) {
             this.addError(shootingPlayer, 'It is not your turn.');
             return;
