@@ -20,6 +20,10 @@ class GameServer {
     handleAction(msg) {
         let action = msg.data;
         action.player = this.playerNum(msg.source);
+        if (action.player === undefined) {
+            console.error('Action without player', msg);
+            return;
+        }
         let events = this.game.handleAction(action);
         this.playerAccounts.forEach(acc => {
             events.forEach(event => {

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const validator_1 = require("./validator");
 const randomJs = require("random-js");
 const rng = new randomJs();
 var TileBelief;
@@ -77,6 +78,7 @@ class BattleshipGame {
     constructor(errorHandeler) {
         this.errorHandeler = errorHandeler;
         this.winner = -1;
+        this.validator = new validator_1.Validator();
         this.reality = [];
         this.beliefs = [];
         for (let i = 0; i < playerNum; i++) {
@@ -97,13 +99,25 @@ class BattleshipGame {
         this.actionHandelers = new Map();
         this.events = [];
         this.addActionHandeler(GameActionType.PlaceShip, (act) => {
-            this.placeShip(act.player, act.params.ship, new Point(act.params.loc.row, act.params.loc.col), act.params.dir);
+            let params = this.validator.validateShipParamaters(act.params);
+            if (params) {
+                this.placeShip(act.player, params.ship, new Point(params.loc.row, params.loc.col), params.dir);
+            }
+            else {
+                this.errorHandeler(act.params.player, "Can't parse " + act + " as PlaceShip action.");
+            }
         });
         this.addActionHandeler(GameActionType.FinishPlacement, (act) => {
             this.finishPlacement(act.player);
         });
         this.addActionHandeler(GameActionType.Fire, (act) => {
-            this.fireAt(act.player, new Point(act.params.target.row, act.params.target.col));
+            let params = this.validator.validateFireParamaters(act.params);
+            if (params) {
+                this.fireAt(act.player, new Point(params.target.row, params.target.col));
+            }
+            else {
+                this.errorHandeler(act.params.player, "Can't parse " + act + " as Fire action.");
+            }
         });
     }
     makeBoard(initial) {

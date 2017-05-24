@@ -43,7 +43,13 @@ abstract class Messenger {
 
     protected makeMessageHandler(ws) {
         ws.on('message', (data, flags) => {
-            let message = JSON.parse(data) as Message;
+            let message: Message;
+            try {
+                message = JSON.parse(data) as Message;
+            } catch (exception) {
+                console.error('Could not parse message from', data, 'got exception', exception);
+                return;
+            }
             let cb = this.handlers.get(message.type);
             if (cb) {
                 cb(message);
@@ -68,7 +74,7 @@ abstract class Messenger {
         this.handlers.set(messageType, callback);
     }
 
-    protected sendMessage(messageType: MessageType, data: string | object, ws: WebSocket):boolean {
+    protected sendMessage(messageType: MessageType, data: string | object, ws: WebSocket): boolean {
         if (ws.readyState !== ws.OPEN)
             return false;
         ws.send(this.makeMessage(messageType, data));

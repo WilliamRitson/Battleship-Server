@@ -29,7 +29,14 @@ class Messenger {
     }
     makeMessageHandler(ws) {
         ws.on('message', (data, flags) => {
-            let message = JSON.parse(data);
+            let message;
+            try {
+                message = JSON.parse(data);
+            }
+            catch (exception) {
+                console.error('Could not parse message from', data, 'got exception', exception);
+                return;
+            }
             let cb = this.handlers.get(message.type);
             if (cb) {
                 cb(message);

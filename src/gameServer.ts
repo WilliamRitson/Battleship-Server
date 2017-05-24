@@ -24,8 +24,11 @@ export class GameServer {
     public handleAction(msg: Message) {
         let action: GameAction = msg.data;
         action.player = this.playerNum(msg.source);
+        if (action.player === undefined) {
+            console.error('Action without player', msg);
+            return;
+        }
         let events = this.game.handleAction(action);
-
         this.playerAccounts.forEach(acc => {
             events.forEach(event => {
                 this.messenger.sendMessageTo(MessageType.GameEvent, event, acc.token);

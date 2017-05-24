@@ -1,3 +1,5 @@
+import { Validator } from './validator';
+
 import * as randomJs from 'random-js';
 const rng = new randomJs();
 
@@ -73,6 +75,7 @@ export class BattleshipGame {
     private hitsPerShip: [number[], number[]];
     private playerReady: [boolean, boolean];
     private winner: number = -1;
+    private validator = new Validator();
 
     constructor(private errorHandeler: (player: number, msg: string) => void) {
         this.reality = [];
@@ -97,13 +100,25 @@ export class BattleshipGame {
         this.events = [];
 
         this.addActionHandeler(GameActionType.PlaceShip, (act) => {
-            this.placeShip(act.player, act.params.ship, new Point(act.params.loc.row, act.params.loc.col), act.params.dir)
+            let params = this.validator.validateShipParamaters(act.params);
+            if (params) {
+                this.placeShip(act.player, params.ship, new Point(params.loc.row, params.loc.col), params.dir)
+            } else {
+                this.errorHandeler(act.params.player, "Can't parse " + act + " as PlaceShip action.");
+            }
         });
+
         this.addActionHandeler(GameActionType.FinishPlacement, (act) => {
             this.finishPlacement(act.player)
         });
+
         this.addActionHandeler(GameActionType.Fire, (act) => {
-            this.fireAt(act.player, new Point(act.params.target.row, act.params.target.col))
+            let params = this.validator.validateFireParamaters(act.params);
+            if (params) {
+                this.fireAt(act.player, new Point(params.target.row, params.target.col))
+            } else {
+                this.errorHandeler(act.params.player, "Can't parse " + act + " as Fire action.");
+            }
         });
     }
 
