@@ -2,7 +2,7 @@ import { getToken } from './tokens';
 import * as WebSocket from 'ws';
 
 export enum MessageType {
-     // General
+    // General
     Info, ClientError,
 
     // Accounts
@@ -99,8 +99,8 @@ export class ServerMessenger extends Messenger {
         this.ws.on('connection', (ws) => {
             ws.on('message', (data) => {
                 let msg = JSON.parse(data) as Message;
-                if (!this.connections.has(msg.source))
-                    this.connections.set(msg.source, ws);
+                //if (!this.connections.has(msg.source))
+                this.connections.set(msg.source, ws);
             });
             this.makeMessageHandler(ws);
         });

@@ -86,8 +86,8 @@ class ServerMessenger extends Messenger {
         this.ws.on('connection', (ws) => {
             ws.on('message', (data) => {
                 let msg = JSON.parse(data);
-                if (!this.connections.has(msg.source))
-                    this.connections.set(msg.source, ws);
+                //if (!this.connections.has(msg.source))
+                this.connections.set(msg.source, ws);
             });
             this.makeMessageHandler(ws);
         });
