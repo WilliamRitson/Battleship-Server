@@ -5,7 +5,9 @@ const tokens_1 = require("./tokens");
 const account_1 = require("./account");
 const gameServer_1 = require("./gameServer");
 const matchmaking_1 = require("./matchmaking");
+const os = require("os");
 const express = require("express");
+const cleaningTime = 1000 * 60 * 30;
 /**
  * Server that holds references to all the components of the app
  *
@@ -22,9 +24,32 @@ class Server {
             console.log('Server started on port', port);
         });
         this.messenger = new messenger_1.ServerMessenger(expressServer);
-        this.gameQueue = new matchmaking_1.MatchQueue(this.messenger, this.makeGame.bind(this));
+        this.gameQueue = new matchmaking_1.MatchQueue(this, this.messenger, this.makeGame.bind(this));
         this.messenger.addHandeler(messenger_1.MessageType.AnonymousLogin, (msg) => this.anonLogin(msg));
+        this.messenger.onMessage = (msg) => {
+            if (this.accounts.has(msg.source))
+                this.accounts.get(msg.source).freshen();
+        };
         this.passMessagesToGames();
+        setInterval(this.pruneAccounts.bind(this), cleaningTime);
+    }
+    pruneAccount(acc) {
+        this.accounts.delete(acc.token);
+        this.gameQueue.removeFromQueue(acc.token);
+        if (acc.gameId && this.games.has(acc.gameId)) {
+            this.games.get(acc.gameId).end();
+        }
+    }
+    pruneAccounts() {
+        console.log('Pruning acounts');
+        let now = Date.now();
+        for (let account of this.accounts.values()) {
+            let time = (account.lastUsed.getTime() - now);
+            if (time > cleaningTime) {
+                console.log('prune', account.username);
+                this.pruneAccount(account);
+            }
+        }
     }
     addRoutes() {
         this.app.use('/', express.static('public'));
@@ -36,18 +61,30 @@ class Server {
         return {
             users: Array.from(this.accounts.values()).map(acc => acc.username),
             games: Array.from(this.games.values()).map(game => game.getName()),
+            queue: this.gameQueue.getPlayersInQueue(),
+            memory: {
+                server: process.memoryUsage(),
+                totalFree: os.freemem(),
+                totalUsed: os.totalmem()
+            }
         };
+    }
+    isLoggedIn(token) {
+        return this.accounts.has(token);
     }
     anonLogin(msg) {
         let userName = msg.data.username;
         let token = tokens_1.getToken();
         let acc = new account_1.Account(token, userName);
-        this.accounts.set(token, acc);
         this.messenger.sendMessageTo(messenger_1.MessageType.LoginResponce, {
             username: acc.username,
             token: acc.token
         }, msg.source);
-        this.messenger.changeToken(msg.source, token);
+        this.changeToken(acc, msg.source, token);
+    }
+    changeToken(account, oldToken, newToken) {
+        this.accounts.set(newToken, account);
+        this.messenger.changeToken(oldToken, newToken);
     }
     passMessagesToGames() {
         this.messenger.addHandeler(messenger_1.MessageType.GameAction, (msg) => {

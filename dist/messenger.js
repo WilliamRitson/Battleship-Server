@@ -13,11 +13,12 @@ var MessageType;
     // Queuing
     MessageType[MessageType["JoinQueue"] = 4] = "JoinQueue";
     MessageType[MessageType["ExitQueue"] = 5] = "ExitQueue";
-    MessageType[MessageType["StartGame"] = 6] = "StartGame";
+    MessageType[MessageType["QueueJoined"] = 6] = "QueueJoined";
+    MessageType[MessageType["StartGame"] = 7] = "StartGame";
     // In Game
-    MessageType[MessageType["Concede"] = 7] = "Concede";
-    MessageType[MessageType["GameEvent"] = 8] = "GameEvent";
-    MessageType[MessageType["GameAction"] = 9] = "GameAction";
+    MessageType[MessageType["Concede"] = 8] = "Concede";
+    MessageType[MessageType["GameEvent"] = 9] = "GameEvent";
+    MessageType[MessageType["GameAction"] = 10] = "GameAction";
 })(MessageType = exports.MessageType || (exports.MessageType = {}));
 /**
  * Abstract class used to communicate via websockets. Can be used by the client or server.
@@ -26,6 +27,7 @@ var MessageType;
  */
 class Messenger {
     constructor(isServer) {
+        this.onMessage = () => null;
         this.name = isServer ? 'Server' : 'Client';
         this.handlers = new Map();
     }
@@ -42,6 +44,7 @@ class Messenger {
             let cb = this.handlers.get(message.type);
             if (cb) {
                 cb(message);
+                this.onMessage(message);
             }
             else {
                 console.error('No handler for message type', message.type);

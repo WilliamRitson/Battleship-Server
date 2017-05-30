@@ -53,6 +53,7 @@ var GameActionType;
     GameActionType[GameActionType["PlaceShip"] = 0] = "PlaceShip";
     GameActionType[GameActionType["FinishPlacement"] = 1] = "FinishPlacement";
     GameActionType[GameActionType["Fire"] = 2] = "Fire";
+    GameActionType[GameActionType["Quit"] = 3] = "Quit";
 })(GameActionType = exports.GameActionType || (exports.GameActionType = {}));
 var GameEventType;
 (function (GameEventType) {
@@ -119,6 +120,13 @@ class BattleshipGame {
                 this.errorHandeler(act.params.player, "Can't parse " + act + " as Fire action.");
             }
         });
+        this.addActionHandeler(GameActionType.Quit, (act) => {
+            this.quit(act.player);
+        });
+    }
+    quit(player) {
+        this.winner = this.getOpponent(player);
+        this.addGameEvent(GameEventType.Ended, { winner: this.winner, quit: true });
     }
     makeBoard(initial) {
         let board = [];
@@ -234,7 +242,8 @@ class BattleshipGame {
         // Check if the game ended
         if (this.remainingHits[op] < 1) {
             this.addGameEvent(GameEventType.Ended, {
-                winner: shootingPlayer
+                winner: shootingPlayer,
+                quit: false
             }, shootingPlayer, null);
             this.winner = shootingPlayer;
             this.playerTurn = 3;

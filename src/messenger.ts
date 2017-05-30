@@ -9,7 +9,7 @@ export enum MessageType {
     AnonymousLogin, LoginResponce,
 
     // Queuing
-    JoinQueue, ExitQueue, StartGame,
+    JoinQueue, ExitQueue, QueueJoined, StartGame,
 
     // In Game
     Concede, GameEvent, GameAction
@@ -31,6 +31,7 @@ abstract class Messenger {
     protected handlers: Map<string, (Message) => void>;
     protected name: string;
     protected id: string;
+    public onMessage: (message: Message) => void = () => null;
 
     constructor(isServer) {
         this.name = isServer ? 'Server' : 'Client';
@@ -49,6 +50,7 @@ abstract class Messenger {
             let cb = this.handlers.get(message.type);
             if (cb) {
                 cb(message);
+                this.onMessage(message);
             } else {
                 console.error('No handler for message type', message.type);
             }
@@ -69,6 +71,7 @@ abstract class Messenger {
         }
         this.handlers.set(messageType, callback);
     }
+
 
     protected sendMessage(messageType: MessageType, data: string | object, ws: WebSocket): boolean {
         if (ws.readyState !== ws.OPEN)
@@ -104,7 +107,7 @@ export class ServerMessenger extends Messenger {
         });
     }
 
-    public changeToken(oldToken:string, newToken:string ) {
+    public changeToken(oldToken: string, newToken: string) {
         let temp = this.connections.get(oldToken);
         this.connections.delete(oldToken);
         this.connections.set(newToken, temp);

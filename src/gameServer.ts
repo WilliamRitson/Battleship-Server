@@ -53,7 +53,7 @@ export class GameServer {
                 playerNumber: i,
                 startInfo: playerInfo,
                 gameId: this.id,
-                opponent: this.playerAccounts[1 - i].username;
+                opponent: this.playerAccounts[1 - i].username
             }, this.playerAccounts[i].token);
         }
     }
