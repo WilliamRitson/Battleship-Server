@@ -89,11 +89,12 @@ class Server {
     passMessagesToGames() {
         this.messenger.addHandeler(messenger_1.MessageType.GameAction, (msg) => {
             let acc = this.accounts.get(msg.source);
-            if (acc == null) {
+            if (!acc) {
                 this.messenger.sendMessageTo(messenger_1.MessageType.ClientError, "Can't take a game action. Your not logged in.", msg.source);
+                return;
             }
             let id = acc.getGame();
-            if (id === null) {
+            if (!id) {
                 this.messenger.sendMessageTo(messenger_1.MessageType.ClientError, "Can't take a game action. Your not in a game.", msg.source);
                 return;
             }

@@ -2,7 +2,7 @@ import { getToken } from './tokens';
 import * as WebSocket from 'ws';
 
 export enum MessageType {
-    // General
+     // General
     Info, ClientError,
 
     // Accounts
@@ -20,7 +20,6 @@ export interface Message {
     type: string;
     data: any;
 }
-
 
 /**
  * Abstract class used to communicate via websockets. Can be used by the client or server. 
