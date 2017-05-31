@@ -15,10 +15,14 @@ var MessageType;
     MessageType[MessageType["ExitQueue"] = 5] = "ExitQueue";
     MessageType[MessageType["QueueJoined"] = 6] = "QueueJoined";
     MessageType[MessageType["StartGame"] = 7] = "StartGame";
+    MessageType[MessageType["NewPrivateGame"] = 8] = "NewPrivateGame";
+    MessageType[MessageType["JoinPrivateGame"] = 9] = "JoinPrivateGame";
+    MessageType[MessageType["CancelPrivateGame"] = 10] = "CancelPrivateGame";
+    MessageType[MessageType["PrivateGameReady"] = 11] = "PrivateGameReady";
     // In Game
-    MessageType[MessageType["Concede"] = 8] = "Concede";
-    MessageType[MessageType["GameEvent"] = 9] = "GameEvent";
-    MessageType[MessageType["GameAction"] = 10] = "GameAction";
+    MessageType[MessageType["Concede"] = 12] = "Concede";
+    MessageType[MessageType["GameEvent"] = 13] = "GameEvent";
+    MessageType[MessageType["GameAction"] = 14] = "GameAction";
 })(MessageType = exports.MessageType || (exports.MessageType = {}));
 /**
  * Abstract class used to communicate via websockets. Can be used by the client or server.
@@ -31,14 +35,21 @@ class Messenger {
         this.name = isServer ? 'Server' : 'Client';
         this.handlers = new Map();
     }
+    readMessage(data) {
+        try {
+            let parsed = JSON.parse(data);
+            parsed.type = MessageType[parsed.type];
+            return parsed;
+        }
+        catch (e) {
+            console.error('Could not parse message json got error', e);
+            return null;
+        }
+    }
     makeMessageHandler(ws) {
         ws.on('message', (data, flags) => {
-            let message;
-            try {
-                message = JSON.parse(data);
-            }
-            catch (exception) {
-                console.error('Could not parse message from', data, 'got exception', exception);
+            let message = this.readMessage(data);
+            if (!message) {
                 return;
             }
             let cb = this.handlers.get(message.type);
@@ -53,7 +64,7 @@ class Messenger {
     }
     makeMessage(messageType, data) {
         return JSON.stringify({
-            type: messageType,
+            type: MessageType[messageType],
             data: data,
             source: this.id
         });

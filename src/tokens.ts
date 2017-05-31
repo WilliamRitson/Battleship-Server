@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
 
-export function getToken(): string {
-    return crypto.randomBytes(64).toString('hex');
+export function getToken(bits:number = 32): string {
+    return crypto.randomBytes(bits).toString('hex');
 }

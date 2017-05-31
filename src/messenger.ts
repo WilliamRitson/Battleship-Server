@@ -10,6 +10,8 @@ export enum MessageType {
 
     // Queuing
     JoinQueue, ExitQueue, QueueJoined, StartGame,
+    NewPrivateGame, JoinPrivateGame, CancelPrivateGame,
+    PrivateGameReady,
 
     // In Game
     Concede, GameEvent, GameAction
@@ -37,13 +39,21 @@ abstract class Messenger {
         this.handlers = new Map();
     }
 
+    private readMessage(data: any): Message | null {
+        try {
+            let parsed = JSON.parse(data);
+            parsed.type = MessageType[parsed.type];
+            return parsed as Message;
+        } catch (e) {
+            console.error('Could not parse message json got error', e);
+            return null;
+        }
+    }
+
     protected makeMessageHandler(ws) {
         ws.on('message', (data, flags) => {
-            let message: Message;
-            try {
-                message = JSON.parse(data) as Message;
-            } catch (exception) {
-                console.error('Could not parse message from', data, 'got exception', exception);
+            let message: Message = this.readMessage(data);
+            if (!message) {
                 return;
             }
             let cb = this.handlers.get(message.type);
@@ -58,7 +68,7 @@ abstract class Messenger {
 
     protected makeMessage(messageType: MessageType, data: string | object): string {
         return JSON.stringify({
-            type: messageType,
+            type: MessageType[messageType],
             data: data,
             source: this.id
         });
