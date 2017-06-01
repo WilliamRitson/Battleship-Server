@@ -76,6 +76,7 @@ class Server {
         let userName = msg.data.username;
         let token = tokens_1.getToken();
         let acc = new account_1.Account(token, userName);
+        this.messenger.addQueue(acc.token);
         this.messenger.sendMessageTo(messenger_1.MessageType.LoginResponce, {
             username: acc.username,
             token: acc.token

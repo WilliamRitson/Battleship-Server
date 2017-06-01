@@ -1,5 +1,6 @@
 import { getToken } from './tokens';
 import * as WebSocket from 'ws';
+import { Queue } from 'typescript-collections';
 
 export enum MessageType {
     // General
@@ -99,11 +100,13 @@ abstract class Messenger {
 export class ServerMessenger extends Messenger {
     private ws: WebSocket.Server;
     protected connections: Map<string, any>;
+    protected queues: Map<string, Queue<string>>;
 
 
     constructor(server) {
         super(true);
         this.connections = new Map<string, any>();
+        this.queues = new Map<string, Queue<string>>();
         this.ws = new WebSocket.Server({ server });
         this.id = 'server';
         this.ws.on('connection', (ws) => {
@@ -111,9 +114,28 @@ export class ServerMessenger extends Messenger {
                 let msg = JSON.parse(data) as Message;
                 //if (!this.connections.has(msg.source))
                 this.connections.set(msg.source, ws);
+                this.checkQueue(msg.source);
             });
             this.makeMessageHandler(ws);
         });
+    }
+
+    public addQueue(token: string) {
+        this.queues.set(token, new Queue<string>());
+    }
+
+    /**
+     * Check if we have any unsent messagess to send to a client
+     * @param token - The client's id
+     */
+    private checkQueue(token: string) {
+        let queue = this.queues.get(token);
+        if (!queue)
+            return;
+        let ws = this.connections.get(token);
+        while (!queue.isEmpty()) {
+            ws.send(queue.dequeue());
+        }
     }
 
     public changeToken(oldToken: string, newToken: string) {
@@ -139,7 +161,14 @@ export class ServerMessenger extends Messenger {
     }
 
     public sendMessageTo(messageType: MessageType, data: string | object, target: string) {
-        return this.sendMessage(messageType, data, this.connections.get(target));
+        let ws = this.connections.get(target);
+        let msg = this.makeMessage(messageType, data)
+        if (ws.readyState === ws.OPEN) {
+            ws.send(msg);
+        } else {
+            if (this.queues.has(target))
+                this.queues.get(target).add(msg);
+        }
     }
 }
 

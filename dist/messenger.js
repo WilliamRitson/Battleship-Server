@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tokens_1 = require("./tokens");
 const WebSocket = require("ws");
+const typescript_collections_1 = require("typescript-collections");
 var MessageType;
 (function (MessageType) {
     // General
@@ -92,6 +93,7 @@ class ServerMessenger extends Messenger {
     constructor(server) {
         super(true);
         this.connections = new Map();
+        this.queues = new Map();
         this.ws = new WebSocket.Server({ server });
         this.id = 'server';
         this.ws.on('connection', (ws) => {
@@ -99,9 +101,26 @@ class ServerMessenger extends Messenger {
                 let msg = JSON.parse(data);
                 //if (!this.connections.has(msg.source))
                 this.connections.set(msg.source, ws);
+                this.checkQueue(msg.source);
             });
             this.makeMessageHandler(ws);
         });
+    }
+    addQueue(token) {
+        this.queues.set(token, new typescript_collections_1.Queue());
+    }
+    /**
+     * Check if we have any unsent messagess to send to a client
+     * @param token - The client's id
+     */
+    checkQueue(token) {
+        let queue = this.queues.get(token);
+        if (!queue)
+            return;
+        let ws = this.connections.get(token);
+        while (!queue.isEmpty()) {
+            ws.send(queue.dequeue());
+        }
     }
     changeToken(oldToken, newToken) {
         let temp = this.connections.get(oldToken);
@@ -124,7 +143,15 @@ class ServerMessenger extends Messenger {
         });
     }
     sendMessageTo(messageType, data, target) {
-        return this.sendMessage(messageType, data, this.connections.get(target));
+        let ws = this.connections.get(target);
+        let msg = this.makeMessage(messageType, data);
+        if (ws.readyState === ws.OPEN) {
+            ws.send(msg);
+        }
+        else {
+            if (this.queues.has(target))
+                this.queues.get(target).add(msg);
+        }
     }
 }
 exports.ServerMessenger = ServerMessenger;
