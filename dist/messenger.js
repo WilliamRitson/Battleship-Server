@@ -3,28 +3,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tokens_1 = require("./tokens");
 const WebSocket = require("ws");
 const typescript_collections_1 = require("typescript-collections");
+/*
+
+Todo
+Deal with Heruku H15 timeouts (maybe)
+Debug reconnection on mobile
+*/
 var MessageType;
 (function (MessageType) {
     // General
     MessageType[MessageType["Info"] = 0] = "Info";
     MessageType[MessageType["ClientError"] = 1] = "ClientError";
     MessageType[MessageType["Connect"] = 2] = "Connect";
+    MessageType[MessageType["Ping"] = 3] = "Ping";
     // Accounts
-    MessageType[MessageType["AnonymousLogin"] = 3] = "AnonymousLogin";
-    MessageType[MessageType["LoginResponce"] = 4] = "LoginResponce";
+    MessageType[MessageType["AnonymousLogin"] = 4] = "AnonymousLogin";
+    MessageType[MessageType["LoginResponce"] = 5] = "LoginResponce";
     // Queuing
-    MessageType[MessageType["JoinQueue"] = 5] = "JoinQueue";
-    MessageType[MessageType["ExitQueue"] = 6] = "ExitQueue";
-    MessageType[MessageType["QueueJoined"] = 7] = "QueueJoined";
-    MessageType[MessageType["StartGame"] = 8] = "StartGame";
-    MessageType[MessageType["NewPrivateGame"] = 9] = "NewPrivateGame";
-    MessageType[MessageType["JoinPrivateGame"] = 10] = "JoinPrivateGame";
-    MessageType[MessageType["CancelPrivateGame"] = 11] = "CancelPrivateGame";
-    MessageType[MessageType["PrivateGameReady"] = 12] = "PrivateGameReady";
+    MessageType[MessageType["JoinQueue"] = 6] = "JoinQueue";
+    MessageType[MessageType["ExitQueue"] = 7] = "ExitQueue";
+    MessageType[MessageType["QueueJoined"] = 8] = "QueueJoined";
+    MessageType[MessageType["StartGame"] = 9] = "StartGame";
+    MessageType[MessageType["NewPrivateGame"] = 10] = "NewPrivateGame";
+    MessageType[MessageType["JoinPrivateGame"] = 11] = "JoinPrivateGame";
+    MessageType[MessageType["CancelPrivateGame"] = 12] = "CancelPrivateGame";
+    MessageType[MessageType["PrivateGameReady"] = 13] = "PrivateGameReady";
     // In Game
-    MessageType[MessageType["Concede"] = 13] = "Concede";
-    MessageType[MessageType["GameEvent"] = 14] = "GameEvent";
-    MessageType[MessageType["GameAction"] = 15] = "GameAction";
+    MessageType[MessageType["Concede"] = 14] = "Concede";
+    MessageType[MessageType["GameEvent"] = 15] = "GameEvent";
+    MessageType[MessageType["GameAction"] = 16] = "GameAction";
 })(MessageType = exports.MessageType || (exports.MessageType = {}));
 /**
  * Abstract class used to communicate via websockets. Can be used by the client or server.
@@ -105,6 +112,7 @@ class ServerMessenger extends Messenger {
             this.makeMessageHandler(ws);
         });
         this.addHandeler(MessageType.Connect, (msg) => this.checkQueue(msg.source));
+        this.addHandeler(MessageType.Ping, (msg) => null);
     }
     addQueue(token) {
         this.queues.set(token, new typescript_collections_1.Queue());
@@ -119,6 +127,7 @@ class ServerMessenger extends Messenger {
             return;
         let ws = this.connections.get(token);
         while (!queue.isEmpty()) {
+            console.log('sending enqued message');
             ws.send(queue.dequeue());
         }
     }

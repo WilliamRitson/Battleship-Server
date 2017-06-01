@@ -2,9 +2,16 @@ import { getToken } from './tokens';
 import * as WebSocket from 'ws';
 import { Queue } from 'typescript-collections';
 
+/*
+
+Todo
+Deal with Heruku H15 timeouts (maybe)
+Debug reconnection on mobile
+*/
+
 export enum MessageType {
     // General
-    Info, ClientError, Connect,
+    Info, ClientError, Connect, Ping,
 
     // Accounts
     AnonymousLogin, LoginResponce,
@@ -116,6 +123,7 @@ export class ServerMessenger extends Messenger {
             this.makeMessageHandler(ws);
         });
         this.addHandeler(MessageType.Connect, (msg) => this.checkQueue(msg.source));
+        this.addHandeler(MessageType.Ping, (msg) => null);
     }
 
     public addQueue(token: string) {
@@ -133,6 +141,7 @@ export class ServerMessenger extends Messenger {
             return;
         let ws = this.connections.get(token);
         while (!queue.isEmpty()) {
+            console.log('sending enqued message');
             ws.send(queue.dequeue());
         }
     }
