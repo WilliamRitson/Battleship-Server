@@ -8,22 +8,23 @@ var MessageType;
     // General
     MessageType[MessageType["Info"] = 0] = "Info";
     MessageType[MessageType["ClientError"] = 1] = "ClientError";
+    MessageType[MessageType["Connect"] = 2] = "Connect";
     // Accounts
-    MessageType[MessageType["AnonymousLogin"] = 2] = "AnonymousLogin";
-    MessageType[MessageType["LoginResponce"] = 3] = "LoginResponce";
+    MessageType[MessageType["AnonymousLogin"] = 3] = "AnonymousLogin";
+    MessageType[MessageType["LoginResponce"] = 4] = "LoginResponce";
     // Queuing
-    MessageType[MessageType["JoinQueue"] = 4] = "JoinQueue";
-    MessageType[MessageType["ExitQueue"] = 5] = "ExitQueue";
-    MessageType[MessageType["QueueJoined"] = 6] = "QueueJoined";
-    MessageType[MessageType["StartGame"] = 7] = "StartGame";
-    MessageType[MessageType["NewPrivateGame"] = 8] = "NewPrivateGame";
-    MessageType[MessageType["JoinPrivateGame"] = 9] = "JoinPrivateGame";
-    MessageType[MessageType["CancelPrivateGame"] = 10] = "CancelPrivateGame";
-    MessageType[MessageType["PrivateGameReady"] = 11] = "PrivateGameReady";
+    MessageType[MessageType["JoinQueue"] = 5] = "JoinQueue";
+    MessageType[MessageType["ExitQueue"] = 6] = "ExitQueue";
+    MessageType[MessageType["QueueJoined"] = 7] = "QueueJoined";
+    MessageType[MessageType["StartGame"] = 8] = "StartGame";
+    MessageType[MessageType["NewPrivateGame"] = 9] = "NewPrivateGame";
+    MessageType[MessageType["JoinPrivateGame"] = 10] = "JoinPrivateGame";
+    MessageType[MessageType["CancelPrivateGame"] = 11] = "CancelPrivateGame";
+    MessageType[MessageType["PrivateGameReady"] = 12] = "PrivateGameReady";
     // In Game
-    MessageType[MessageType["Concede"] = 12] = "Concede";
-    MessageType[MessageType["GameEvent"] = 13] = "GameEvent";
-    MessageType[MessageType["GameAction"] = 14] = "GameAction";
+    MessageType[MessageType["Concede"] = 13] = "Concede";
+    MessageType[MessageType["GameEvent"] = 14] = "GameEvent";
+    MessageType[MessageType["GameAction"] = 15] = "GameAction";
 })(MessageType = exports.MessageType || (exports.MessageType = {}));
 /**
  * Abstract class used to communicate via websockets. Can be used by the client or server.
@@ -99,12 +100,11 @@ class ServerMessenger extends Messenger {
         this.ws.on('connection', (ws) => {
             ws.on('message', (data) => {
                 let msg = JSON.parse(data);
-                //if (!this.connections.has(msg.source))
                 this.connections.set(msg.source, ws);
-                this.checkQueue(msg.source);
             });
             this.makeMessageHandler(ws);
         });
+        this.addHandeler(MessageType.Connect, (msg) => this.checkQueue(msg.source));
     }
     addQueue(token) {
         this.queues.set(token, new typescript_collections_1.Queue());
@@ -128,7 +128,7 @@ class ServerMessenger extends Messenger {
         this.connections.set(newToken, temp);
     }
     /**
-     * Send Mesage from server to all clients
+     * Send message from server to all clients
      *
      * @param {string} messageType
      * @param {string} data
@@ -142,6 +142,17 @@ class ServerMessenger extends Messenger {
             }
         });
     }
+    /**
+     * Send a message to a user. If the conneciton is closed, but the user is logged in
+     * the message will be enqued. If the user then reconnects, the queued message will
+     * be sent
+     *
+     * @param {MessageType} messageType - The type of message to send
+     * @param {(string | object)} data - The data contined within the message
+     * @param {string} target - The id of the user to send the message to
+     *
+     * @memberof ServerMessenger
+     */
     sendMessageTo(messageType, data, target) {
         let ws = this.connections.get(target);
         let msg = this.makeMessage(messageType, data);
@@ -149,8 +160,11 @@ class ServerMessenger extends Messenger {
             ws.send(msg);
         }
         else {
-            if (this.queues.has(target))
+            if (this.queues.has(target)) {
                 this.queues.get(target).add(msg);
+            }
+            else
+                console.error('ws closed, message lost');
         }
     }
 }

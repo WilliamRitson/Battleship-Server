@@ -4,7 +4,7 @@ import { Queue } from 'typescript-collections';
 
 export enum MessageType {
     // General
-    Info, ClientError,
+    Info, ClientError, Connect,
 
     // Accounts
     AnonymousLogin, LoginResponce,
@@ -102,7 +102,6 @@ export class ServerMessenger extends Messenger {
     protected connections: Map<string, any>;
     protected queues: Map<string, Queue<string>>;
 
-
     constructor(server) {
         super(true);
         this.connections = new Map<string, any>();
@@ -112,12 +111,11 @@ export class ServerMessenger extends Messenger {
         this.ws.on('connection', (ws) => {
             ws.on('message', (data) => {
                 let msg = JSON.parse(data) as Message;
-                //if (!this.connections.has(msg.source))
                 this.connections.set(msg.source, ws);
-                this.checkQueue(msg.source);
             });
             this.makeMessageHandler(ws);
         });
+        this.addHandeler(MessageType.Connect, (msg) => this.checkQueue(msg.source));
     }
 
     public addQueue(token: string) {
@@ -129,6 +127,7 @@ export class ServerMessenger extends Messenger {
      * @param token - The client's id
      */
     private checkQueue(token: string) {
+
         let queue = this.queues.get(token);
         if (!queue)
             return;
@@ -145,7 +144,7 @@ export class ServerMessenger extends Messenger {
     }
 
     /**
-     * Send Mesage from server to all clients
+     * Send message from server to all clients
      * 
      * @param {string} messageType 
      * @param {string} data 
@@ -160,14 +159,27 @@ export class ServerMessenger extends Messenger {
         });
     }
 
+    /**
+     * Send a message to a user. If the conneciton is closed, but the user is logged in
+     * the message will be enqued. If the user then reconnects, the queued message will
+     * be sent
+     * 
+     * @param {MessageType} messageType - The type of message to send
+     * @param {(string | object)} data - The data contined within the message
+     * @param {string} target - The id of the user to send the message to
+     * 
+     * @memberof ServerMessenger
+     */
     public sendMessageTo(messageType: MessageType, data: string | object, target: string) {
         let ws = this.connections.get(target);
         let msg = this.makeMessage(messageType, data)
         if (ws.readyState === ws.OPEN) {
             ws.send(msg);
         } else {
-            if (this.queues.has(target))
+            if (this.queues.has(target)) {
                 this.queues.get(target).add(msg);
+            } else
+                console.error('ws closed, message lost');
         }
     }
 }

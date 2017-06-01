@@ -40,8 +40,6 @@ export class Server {
         setInterval(this.pruneAccounts.bind(this), cleaningTime)
     }
 
-
-
     private pruneAccount(acc: Account) {
         this.accounts.delete(acc.token);
         this.gameQueue.removeFromQueue(acc.token);
@@ -104,9 +102,6 @@ export class Server {
         this.accounts.set(newToken, account);
         this.messenger.changeToken(oldToken, newToken);
     }
-
-
-
 
     private passMessagesToGames() {
         this.messenger.addHandeler(MessageType.GameAction, (msg: Message) => {

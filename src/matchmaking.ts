@@ -17,7 +17,7 @@ export class MatchQueue {
 
     private newPrivateGame(message: Message) {
         if (!this.server.isLoggedIn(message.source)) {
-            this.messenger.sendMessageTo(MessageType.ClientError, "You must be logged in to do that.", message.source);
+            this.messenger.sendMessageTo(MessageType.ClientError, "You must be logged in to start a private game.", message.source);
             return;
         }
         let token = getToken(16);
@@ -27,7 +27,7 @@ export class MatchQueue {
 
     private joinPrivateGame(message: Message) {
         if (!this.server.isLoggedIn(message.source)) {
-            this.messenger.sendMessageTo(MessageType.ClientError, "You must be logged in to do that.", message.source);
+            this.messenger.sendMessageTo(MessageType.ClientError, "You must be logged in to join a private game.", message.source);
             return;
         }
         if (!message.data || !message.data.gameId  || !this.privateGames.has(message.data.gameId)) {
@@ -40,7 +40,7 @@ export class MatchQueue {
 
     private cancelPrivateGame(message: Message) {
         if (!this.server.isLoggedIn(message.source)) {
-            this.messenger.sendMessageTo(MessageType.ClientError, "You must be logged in to do that.", message.source);
+            this.messenger.sendMessageTo(MessageType.ClientError, "You must be logged in to camcel a private game.", message.source);
             return;
         }
         if (!message.data || !message.data.gameId  || !this.privateGames.has(message.data.gameId)) {
