@@ -7,7 +7,8 @@ const gameServer_1 = require("./gameServer");
 const matchmaking_1 = require("./matchmaking");
 const os = require("os");
 const express = require("express");
-const cleaningTime = 1000 * 60 * 30;
+// 1 hour
+const cleaningTime = 1000 * 60 * 60 * 1;
 /**
  * Server that holds references to all the components of the app
  *
@@ -36,6 +37,7 @@ class Server {
     pruneAccount(acc) {
         this.accounts.delete(acc.token);
         this.gameQueue.removeFromQueue(acc.token);
+        this.messenger.deleteUser(acc.token);
         if (acc.gameId && this.games.has(acc.gameId)) {
             this.games.get(acc.gameId).end();
         }

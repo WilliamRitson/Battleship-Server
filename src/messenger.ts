@@ -1,11 +1,11 @@
-import { getToken } from './tokens';
 import * as WebSocket from 'ws';
+
+import { getToken } from './tokens';
 import { Queue } from 'typescript-collections';
 
 /*
 
 Todo
-Deal with Heruku H15 timeouts (maybe)
 Debug reconnection on mobile
 */
 
@@ -130,12 +130,18 @@ export class ServerMessenger extends Messenger {
         this.queues.set(token, new Queue<string>());
     }
 
+    public deleteUser(token: string) {
+        if (this.connections.has(token))
+            this.connections.delete(token);
+        if (this.connections.has(token))
+            this.queues.delete(token);
+    }
+
     /**
      * Check if we have any unsent messagess to send to a client
      * @param token - The client's id
      */
     private checkQueue(token: string) {
-
         let queue = this.queues.get(token);
         if (!queue)
             return;

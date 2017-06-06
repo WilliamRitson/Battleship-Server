@@ -6,7 +6,8 @@ import { MatchQueue } from './matchmaking';
 import * as os from 'os';
 import * as express from 'express';
 
-const cleaningTime = 1000 * 60 * 30;
+// 1 hour
+const cleaningTime = 1000 * 60 * 60 * 1;
 
 /**
  * Server that holds references to all the components of the app
@@ -43,6 +44,7 @@ export class Server {
     private pruneAccount(acc: Account) {
         this.accounts.delete(acc.token);
         this.gameQueue.removeFromQueue(acc.token);
+        this.messenger.deleteUser(acc.token);
         if (acc.gameId && this.games.has(acc.gameId)) {
             this.games.get(acc.gameId).end();
         }

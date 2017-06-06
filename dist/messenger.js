@@ -1,12 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const tokens_1 = require("./tokens");
 const WebSocket = require("ws");
+const tokens_1 = require("./tokens");
 const typescript_collections_1 = require("typescript-collections");
 /*
 
 Todo
-Deal with Heruku H15 timeouts (maybe)
 Debug reconnection on mobile
 */
 var MessageType;
@@ -116,6 +115,12 @@ class ServerMessenger extends Messenger {
     }
     addQueue(token) {
         this.queues.set(token, new typescript_collections_1.Queue());
+    }
+    deleteUser(token) {
+        if (this.connections.has(token))
+            this.connections.delete(token);
+        if (this.connections.has(token))
+            this.queues.delete(token);
     }
     /**
      * Check if we have any unsent messagess to send to a client
