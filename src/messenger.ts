@@ -4,7 +4,6 @@ import { getToken } from './tokens';
 import { Queue } from 'typescript-collections';
 
 /*
-
 Todo
 Debug reconnection on mobile
 */
