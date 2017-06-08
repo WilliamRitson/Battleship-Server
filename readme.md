@@ -1,6 +1,8 @@
 # About
 This is a server for the game battleship written in Typescript. A console based client is also included.
 
+You can find a web based client for the server at (https://github.com/WilliamRitson/Battleship-Client)
+
 # Install
 Requires [node](https://nodejs.org/en/), [npm](https://www.npmjs.com/) and [typescript](https://www.typescriptlang.org/) to be installed.
 
